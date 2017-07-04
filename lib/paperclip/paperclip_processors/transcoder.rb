@@ -112,9 +112,15 @@ module Paperclip
     end
 
     def padded_size
-      width = clear_geometry(@width).to_f
-      height = (width / aspect_ratio).floor
-      "#{width.floor}x#{height}"
+      # HACK for iphone videos in portrait
+      if @meta[:rotate].present? && @meta[:rotate] == 90
+        height = clear_geometry(@width).to_f
+        width = (height / aspect_ratio).floor
+      else
+        width = clear_geometry(@width).to_f
+        height = (width / aspect_ratio).floor
+      end
+      "#{width.floor}x#{height.floor}"
     end
 
     def aspect_ratio
