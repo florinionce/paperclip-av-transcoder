@@ -35,7 +35,8 @@ module Paperclip
       @pad_color        = options[:pad_color].nil? ? "black" : options[:pad_color]
 
       @convert_options[:output][:s] = format_geometry(@geometry) if @geometry.present?
-
+      @convert_options[:output][:aspect] = @meta[:aspect].to_s if @keep_aspect
+      @convert_options[:output][:vf] = "scale=#{padded_size}" if @keep_aspect
       attachment.instance_write(:meta, @meta) if attachment
     end
 
@@ -48,7 +49,7 @@ module Paperclip
       dst.binmode
 
       if @meta
-        log "Transcoding supported file #{@file.path}"
+        log "Transocding supported file #{@file.path}"
         @cli.add_source(@file.path)
         @cli.add_destination(dst.path)
         @cli.reset_input_filters
@@ -56,7 +57,6 @@ module Paperclip
         if output_is_image?
           @time = @time.call(@meta, @options) if @time.respond_to?(:call)
           @cli.filter_seek @time
-          @cli.filter_rotate @meta[:rotate] if @auto_rotate && !@meta[:rotate].nil?
         end
 
         if @convert_options.present?
@@ -99,11 +99,26 @@ module Paperclip
 
     def format_geometry geometry
       return unless geometry.present?
-      return geometry.gsub(/[#!<>)]/, '')
+      return geometry.gsub(/[#!<>)]/, '') unless @keep_aspect
+      return padded_size if @keep_aspect
+    end
+
+    def clear_geometry value
+      value.gsub(/[#!<>)]/, '')
     end
 
     def output_is_image?
       !!@format.to_s.match(/jpe?g|png|gif$/)
+    end
+
+    def padded_size
+      width = clear_geometry(@width).to_f
+      height = (width / aspect_ratio).floor
+      "#{width.floor}x#{height}"
+    end
+
+    def aspect_ratio
+      @meta[:width] / @meta[:height].to_f
     end
   end
 
