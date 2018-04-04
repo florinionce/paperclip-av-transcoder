@@ -22,7 +22,17 @@ module Paperclip
       @geometry         = options[:geometry]
       unless @geometry.nil?
         modifier = @geometry[0]
-        @geometry[0] = '' if ['#', '<', '>'].include? modifier
+
+        if ['#', '<', '>'].include? modifier
+          if @geometry.frozen?
+            @geometry = @geometry.dup
+            @geometry[0] = ''
+            @geometry.freeze
+          else
+            @geometry[0] = ''
+          end
+        end
+
         @width, @height   = @geometry.split('x')
         @keep_aspect      = @width[0] == '!' || @height[0] == '!'
         @pad_only         = @keep_aspect    && modifier == '#'
